@@ -6,6 +6,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -34,6 +37,10 @@ public class Token {
     @JoinColumn(name = "user_id")
     @JsonIgnore
     public User user;
+
+    @CreationTimestamp
+    @Column(nullable = false ,updatable = false)
+    private LocalDateTime dateCreated;
 
     public enum TokenType {
         BEARER
