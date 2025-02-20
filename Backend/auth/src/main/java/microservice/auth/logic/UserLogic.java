@@ -121,7 +121,7 @@ public class UserLogic {
     public User setUpdateUserData(User userToUpdate, UserDto updateData) {
         userToUpdate.setIdGender(updateData.getIdGender());
         userToUpdate.setIdTypeDocument(updateData.getIdTypeDocument());
-        userToUpdate.setRoles(updateData.getRoles());
+        userToUpdate.setIdRole(updateData.getIdRole());
         userToUpdate.setFirstName(updateData.getFirstName());
         userToUpdate.setLastName(updateData.getLastName());
         userToUpdate.setPassword(updateData.getPassword());

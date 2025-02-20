@@ -35,7 +35,7 @@ public class RoleLogic {
 
         if (user.isPresent() && roleToAssign.isPresent()) {
             User userToAssign = user.get();
-            userToAssign.getRoles().add(roleToAssign.get());
+            userToAssign.setIdRole(roleToAssign.get().getId());
 
             this.userRepository.save(userToAssign);
         } else {
@@ -52,7 +52,7 @@ public class RoleLogic {
 
         if (user.isPresent() && roleToAssign.isPresent()) {
             User userToAssign = user.get();
-            userToAssign.getRoles().remove(roleToAssign.get());
+            userToAssign.setIdRole(roleToAssign.get().getId());
 
             this.userRepository.save(userToAssign);
         } else {

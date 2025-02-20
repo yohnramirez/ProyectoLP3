@@ -1,12 +1,16 @@
 package microservice.auth.dto;
 
+import lombok.Builder;
 import lombok.Data;
 import microservice.auth.model.Role;
+import microservice.auth.model.Token;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Data
+@Builder
 public class UserDto {
 
     private long id;
@@ -15,7 +19,7 @@ public class UserDto {
 
     private long idTypeDocument;
 
-    private Set<Role> roles;
+    private Long idRole;
 
     private String numberDocument;
 
@@ -34,6 +38,8 @@ public class UserDto {
     private String address;
 
     private String birthDay;
+
+    private List<Token> tokens;
 
     private boolean state = true;
 

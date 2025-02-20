@@ -33,7 +33,7 @@ public class UserController {
      * @param data data info
      * @return UserDto
      */
-    @PostMapping("/create")
+    @PostMapping("/register")
     public ResponseEntity<UserDto> register(@RequestBody UserDto data) {
      UserDto createdUser = this.userLogic.registerUser(data);
      return ResponseEntity.ok(createdUser);
