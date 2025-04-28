@@ -1,9 +1,10 @@
-# App de agendamiento de citas para consultorio médico
+# App de Seguridad Comunitaria
 
-La siguiente documentación expondrá técnicamente la construcción de un aplicativo móvil desarrollado en Spring Boot (Backend) y Kotlin (Frontend) para la gestión de agendamiento de citas para un consultorio médico, abordando desde la definición de requerimientos, modelo de entidades y funcionalidades, hasta el desarrollo del mismo.
+La presente documentación describe el desarrollo de una aplicación móvil para seguridad comunitaria, utilizando Spring Boot (backend), Kotlin (frontend) y Supabase (base de datos). El sistema permitirá a los usuarios reportar incidentes, visualizar reportes en tiempo real, consultar su estado y fomentar la colaboración ciudadana para mejorar la seguridad local.
 
 ## Modelo de Entidades
 
 A continuación, se define el modelo de entidades que gestionará los datos para el aplicativo: 
 
-![image](https://github.com/user-attachments/assets/51c25eab-d8c0-4042-b48b-855d66b8d426)
+![image](https://github.com/user-attachments/assets/063750ed-0ae3-4f6d-b72a-281b342f66a3)
+
