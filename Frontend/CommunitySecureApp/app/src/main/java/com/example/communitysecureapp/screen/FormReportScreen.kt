@@ -97,7 +97,7 @@ fun FormReportScreen(
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         ExposedDropdownMenuBox(
             expanded = expandedTypeReportField,
@@ -143,6 +143,22 @@ fun FormReportScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Descripción (máx. 500 caracteres)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 4,
+            maxLines = 8,
+            isError = description.isBlank() && description.isNotEmpty(),
+            colors = OutlinedTextFieldDefaults.colors(
+                errorBorderColor = MaterialTheme.colorScheme.error
+            ),
+            supportingText = { if (description.isBlank() && description.isNotEmpty()) Text("Este campo es obligatorio") }
+        )
+
+        Text("${description.length}/500", modifier = Modifier.align(Alignment.End))
+
         Text("Ubicación del Incidente", style = MaterialTheme.typography.titleSmall)
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -180,26 +196,6 @@ fun FormReportScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Descripción (máx. 500 caracteres)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 4,
-            maxLines = 8,
-            isError = description.isBlank() && description.isNotEmpty(),
-            colors = OutlinedTextFieldDefaults.colors(
-                errorBorderColor = MaterialTheme.colorScheme.error
-            ),
-            supportingText = { if (description.isBlank() && description.isNotEmpty()) Text("Este campo es obligatorio") }
-        )
-
-        Text("${description.length}/500", modifier = Modifier.align(Alignment.End))
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),

@@ -20,10 +20,12 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,18 +45,21 @@ import com.example.communitysecureapp.utils.navigation.Home
 import com.example.communitysecureapp.utils.navigation.Login
 import com.example.communitysecureapp.utils.navigation.Register
 import com.example.communitysecureapp.viewmodel.LoginViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltViewModel()) {
 
     val context = LocalContext.current
     val loaderState by viewModel.loaderState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     fun validateForm(): Boolean {
         val isEmailValid = when {
@@ -89,12 +94,21 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
         return isEmailValid && isPasswordValid
     }
 
-    Surface {
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(16.dp)
+            )
+        }
+    ) { paddingValues ->
+
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(horizontal = 30.dp)
         ) {
 
@@ -168,41 +182,44 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            loaderState.result?.let { result ->
-                if (result.success) {
+            LaunchedEffect(loaderState.result) {
+                loaderState.result?.let { result ->
+                    if (result.success) {
 
-                    val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+                        val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
-                    prefs.edit().apply {
-                        putString("auth_token", result.token)
-                        putLong(
-                            "token_expiry",
-                            result.expiry ?: (System.currentTimeMillis() / 1000 + 3600)
-                        )
-                        putString("user_name", result.userName)
-                        apply()
+                        prefs.edit().apply {
+                            putString("auth_token", result.token)
+                            putLong(
+                                "token_expiry",
+                                result.expiry ?: (System.currentTimeMillis() / 1000 + 3600)
+                            )
+                            putString("user_name", result.userName)
+                            apply()
+                        }
+
+                        Toast.makeText(
+                            context,
+                            "¡Bienvenido, ${result.userName}!",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        navController.navigate(Home) {
+                            popUpTo(Login) { inclusive = true }
+                        }
+
+                        viewModel.clearLoginViewModel()
+
+                    } else {
+                        errorMessage = "Credenciales incorrectas"
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = errorMessage!!,
+                                withDismissAction = true
+                            )
+                        }
+                        viewModel.clearLoginViewModel()
                     }
-
-                    Toast.makeText(
-                        context,
-                        "¡Bienvenido, ${result.userName}!",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    navController.navigate(Home) {
-                        popUpTo(Login) { inclusive = true }
-                    }
-
-                    viewModel.clearLoginViewModel()
-
-                } else {
-                    Toast.makeText(
-                        context,
-                        result.errorMessage ?: "Error al iniciar sesión",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    viewModel.clearLoginViewModel()
                 }
             }
         }
