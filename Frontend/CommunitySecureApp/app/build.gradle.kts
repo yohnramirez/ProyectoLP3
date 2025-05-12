@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlinxSerialization)
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
 }
@@ -47,6 +48,13 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
+
+    // Open Street Maps
+    implementation(libs.osmdroid.osmdroid.android)
+
+    // Location
+    implementation(libs.play.services.location)
 
     // Retrofit
     implementation(libs.retrofit)

@@ -1,6 +1,7 @@
 package com.example.communitysecureapp.model.register
 
 data class RegisterRequest (
+    val fullName: String,
     val email: String,
     var password: String,
     val address: String,

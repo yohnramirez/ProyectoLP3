@@ -37,10 +37,10 @@ public class SeedData {
         return args -> {
             if (genderRepository.count() == 0) {
                 List<Gender> types = List.of(
-                        new Gender("Femenino", "FEM", true),
-                        new Gender("Masculino", "MAS", true),
+                        new Gender("Femenino", "F", true),
+                        new Gender("Masculino", "M", true),
                         new Gender("Prefiero No Especificar", "NE", true),
-                        new Gender("Otro", "OT", true)
+                        new Gender("Otro", "O", true)
                 );
 
                 genderRepository.saveAll(types);

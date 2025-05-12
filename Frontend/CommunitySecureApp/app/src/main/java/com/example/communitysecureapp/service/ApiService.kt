@@ -9,6 +9,7 @@ import com.example.communitysecureapp.model.register.RegisterResponse
 import com.example.communitysecureapp.model.report.ReportHistoryResponse
 import com.example.communitysecureapp.model.report.ReportRequest
 import com.example.communitysecureapp.model.report.ReportResponse
+import com.example.communitysecureapp.model.type.ReportType
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -66,6 +67,26 @@ interface ApiService {
 
     @PUT("/api/genders/{id}")
     suspend fun updateGender(@Path("id") id: Long, @Body updateData: Gender): Gender
+
+
+    /*
+        TYPE REPORTS
+     */
+    @POST("/api/report-types/create")
+    suspend fun createTypeReport(@Body reportType: ReportType): ReportType
+
+    @GET("/api/report-types/")
+    suspend fun getReportTypes(): List<ReportType>
+
+    @GET("/api/report-types/{id}")
+    suspend fun getOneReportType(@Path("id") id: Long): ReportType
+
+    @PUT("/api/report-types/{id}")
+    suspend fun updateReportType(@Path("id") id: Long, @Body updateData: ReportType)
+
+    @DELETE("/api/report-types/{id}")
+    suspend fun deleteReportType(@Path("id") id: Long)
+
 
     /*
         REPORTS

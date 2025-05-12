@@ -68,7 +68,7 @@ public class TypeDocumentController {
      * @param dataUpdate data to update
      * @return TypeDocumentDto
      */
-    @PostMapping("/{id}")
+    @PutMapping("/{id}")
     public ResponseEntity<TypeDocumentDto> update(@PathVariable Long id, @RequestBody TypeDocumentDto dataUpdate) {
         TypeDocumentDto typeDocument = this.typeDocumentLogic.updateTypeDocument(id, dataUpdate);
 

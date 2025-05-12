@@ -1,9 +1,12 @@
 package com.example.communitysecureapp.screen
 
+import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,9 +55,13 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Popup
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.communitysecureapp.model.document.TypeDocument
+import com.example.communitysecureapp.model.gender.Gender
+import com.example.communitysecureapp.model.register.RegisterRequest
 import com.example.communitysecureapp.viewmodel.RegisterViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,7 +70,11 @@ import java.util.Locale
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = hiltViewModel()) {
 
-    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    val genders by viewModel.genders.collectAsState()
+    val typeDocuments by viewModel.typeDocuments.collectAsState()
+    val registerResult by viewModel.registerResult.collectAsState()
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -76,20 +87,208 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
     var typeDocument by rememberSaveable { mutableStateOf("") }
     var numberDocument by rememberSaveable { mutableStateOf("") }
 
+    var emailError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var fullNameError by remember { mutableStateOf<String?>(null) }
+    var addressError by remember { mutableStateOf<String?>(null) }
+    var countryError by remember { mutableStateOf<String?>(null) }
+    var cityError by remember { mutableStateOf<String?>(null) }
+    var birthdayError by remember { mutableStateOf<String?>(null) }
+    var genderError by remember { mutableStateOf<String?>(null) }
+    var typeDocumentError by remember { mutableStateOf<String?>(null) }
+    var numberDocumentError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.getTypesDocument()
+        viewModel.getGenders()
+    }
+
+    LaunchedEffect(registerResult) {
+        registerResult?.let { result ->
+            if (result.success) {
+                navController.navigate("home") {
+                    popUpTo("register") { inclusive = true }
+                }
+            } else {
+                Toast.makeText(
+                    context,
+                    result.errorMessage ?: "Error desconocido en el registro",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
+        viewModel.clearResults()
+    }
+
+    fun validateForm(): Boolean {
+        val isEmailValid = when {
+            email.isEmpty() -> {
+                emailError = "Email es requerido"
+                false
+            }
+
+            !Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
+                emailError = "Formato de email inválido"
+                false
+            }
+
+            else -> {
+                emailError = null
+                true
+            }
+        }
+
+        val isPasswordValid = when {
+            password.isEmpty() -> {
+                passwordError = "Contraseña es requerida"
+                false
+            }
+
+            password.length < 6 -> {
+                passwordError = "La contraseña debe tener al menos 6 caracteres"
+                false
+            }
+
+            else -> {
+                emailError = null
+                true
+            }
+        }
+
+        val isFullNameValid = when {
+            fullName.isEmpty() -> {
+                fullNameError = "Nombre es requerido"
+                false
+            }
+
+            fullName.length > 100 -> {
+                fullNameError = "Limite de caracteres superado"
+                false
+            }
+
+            else -> {
+                fullNameError = null
+                true
+            }
+        }
+
+        val isAddressValid = when {
+            address.isEmpty() -> {
+                addressError = "Direccion es requerida"
+                false
+            }
+
+            address.length > 150 -> {
+                addressError = "Limite de caracteres superado"
+                false
+            }
+
+            else -> {
+                addressError = null
+                true
+            }
+        }
+
+        val isCountryValid = when {
+            country.isEmpty() -> {
+                countryError = "Pais requerido"
+                false
+            }
+
+            else -> {
+                countryError = null
+                true
+            }
+        }
+
+        val isCityValid = when {
+            city.isEmpty() -> {
+                cityError = "Ciudad requerida"
+                false
+            }
+
+            city.length > 100 -> {
+                cityError = "Limite de caracteres superado"
+                false
+            }
+
+            else -> {
+                cityError = null
+                true
+            }
+        }
+
+        val isBirthdayValid = when {
+            birthday.isEmpty() -> {
+                birthdayError = "Fecha requerida"
+                false
+            }
+
+            else -> {
+                birthdayError = null
+                true
+            }
+        }
+
+        val isGenderValid = when {
+            gender.isEmpty() -> {
+                genderError = "Genero requerido"
+                false
+            }
+
+            else -> {
+                genderError = null
+                true
+            }
+        }
+
+        val isTypeDocumentValid = when {
+            typeDocument.isEmpty() -> {
+                typeDocumentError = "Tipo requerido"
+                false
+            }
+
+            else -> {
+                typeDocumentError = null
+                true
+            }
+        }
+
+        val isNumberDocumentValid = when {
+            numberDocument.isEmpty() -> {
+                numberDocumentError = "Numero requerido"
+                false
+            }
+
+            numberDocument.length > 35 -> {
+                numberDocumentError = "Limite de caracteres superado"
+                false
+            }
+
+            else -> {
+                numberDocumentError = null
+                true
+            }
+        }
+
+        return isEmailValid && isPasswordValid && isFullNameValid && isAddressValid && isCountryValid && isCityValid && isBirthdayValid && isGenderValid && isTypeDocumentValid && isNumberDocumentValid
+    }
+
     Surface {
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 30.dp)
+                .padding(horizontal = 20.dp)
         ) {
             NameRegisterField(
                 value = fullName,
                 onChange = {
                     fullName = it
                 },
-                errorMessage = null,
+                errorMessage = fullNameError,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -98,7 +297,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 onChange = {
                     email = it
                 },
-                errorMessage = null,
+                errorMessage = emailError,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -109,48 +308,107 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 },
                 submit = {
                 },
-                errorMessage = null,
+                errorMessage = passwordError,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            CountryRegisterField(
-                value = country,
-                onChange = {
-                    country = it
-                },
-                errorMessage = null,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
 
-            CityRegisterField(
-                value = city,
-                onChange = {
-                    city = it
-                },
-                errorMessage = null,
-                modifier = Modifier.fillMaxWidth()
-            )
+                CountryRegisterField(
+                    value = country,
+                    onChange = {
+                        country = it
+                    },
+                    errorMessage = countryError,
+                    modifier = Modifier.weight(1f)
+                )
+
+                CityRegisterField(
+                    value = city,
+                    onChange = {
+                        city = it
+                    },
+                    errorMessage = cityError,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
             AddressRegisterField(
                 value = address,
                 onChange = {
                     address = it
                 },
-                errorMessage = null,
+                errorMessage = addressError,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            BirthdayRegisterField(
-                birthday = birthday,
-                onChange = {
-                    birthday = it
-                }
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+                TypeDocumentField(
+                    value = typeDocument,
+                    onChange = { typeDocument = it },
+                    errorMessage = typeDocumentError,
+                    modifier = Modifier.weight(1f),
+                    types = typeDocuments?.data
+                )
+
+                NumberDocumentField(
+                    value = numberDocument,
+                    onChange = { numberDocument = it },
+                    errorMessage = numberDocumentError,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+                BirthdayRegisterField(
+                    birthday = birthday,
+                    onChange = {
+                        birthday = it
+                    },
+                    errorMessage = birthdayError,
+                    modifier = Modifier.weight(1f)
+                )
+
+                GenderField(
+                    value = gender,
+                    onChange = { gender = it },
+                    errorMessage = genderError,
+                    modifier = Modifier.weight(1f),
+                    genders = genders?.data,
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
+                    if (validateForm()) {
+                        viewModel.register(
+                            RegisterRequest(
+                                fullName = fullName,
+                                email = email,
+                                address = address,
+                                typeDocument = typeDocument,
+                                numberDocument = numberDocument,
+                                city = city,
+                                country = country,
+                                gender = gender,
+                                password = password,
+                                birthday = birthday
+                            )
+                        )
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -178,6 +436,9 @@ fun NameRegisterField(
         onValueChange = onChange,
         isError = errorMessage != null,
         supportingText = { if (errorMessage != null) Text(errorMessage) },
+        colors = OutlinedTextFieldDefaults.colors(
+            errorBorderColor = MaterialTheme.colorScheme.error
+        ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -232,7 +493,7 @@ fun PasswordRegisterField(
     submit: () -> Unit,
     modifier: Modifier = Modifier,
     errorMessage: String?,
-    label: String = "Password",
+    label: String = "Contraseña",
     placeholder: String = "Ingrese su contraseña"
 ) {
 
@@ -298,6 +559,9 @@ fun AddressRegisterField(
         onValueChange = onChange,
         isError = errorMessage != null,
         supportingText = { if (errorMessage != null) Text(errorMessage) },
+        colors = OutlinedTextFieldDefaults.colors(
+            errorBorderColor = MaterialTheme.colorScheme.error
+        ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -325,6 +589,39 @@ fun CityRegisterField(
         onValueChange = onChange,
         isError = errorMessage != null,
         supportingText = { if (errorMessage != null) Text(errorMessage) },
+        colors = OutlinedTextFieldDefaults.colors(
+            errorBorderColor = MaterialTheme.colorScheme.error
+        ),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+        keyboardActions = KeyboardActions(
+            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+        ),
+        label = { Text(label) },
+        placeholder = { Text(placeholder) }
+    )
+}
+
+@Composable
+fun NumberDocumentField(
+    value: String,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    errorMessage: String?,
+    label: String = "Número documento",
+    placeholder: String = "Ingrese documento"
+) {
+
+    val focusManager = LocalFocusManager.current
+
+    OutlinedTextField(
+        value = value,
+        modifier = modifier,
+        onValueChange = onChange,
+        isError = errorMessage != null,
+        supportingText = { if (errorMessage != null) Text(errorMessage) },
+        colors = OutlinedTextFieldDefaults.colors(
+            errorBorderColor = MaterialTheme.colorScheme.error
+        ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -336,13 +633,133 @@ fun CityRegisterField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun TypeDocumentField(
+    value: String,
+    types: List<TypeDocument>?,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    errorMessage: String?,
+    label: String = "Tipo doc",
+    placeholder: String = "Selección tipo"
+) {
+
+    var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            readOnly = true,
+            value = value,
+            onValueChange = {},
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            isError = errorMessage != null,
+            supportingText = { if (errorMessage != null) Text(errorMessage) },
+            colors = OutlinedTextFieldDefaults.colors(
+                errorBorderColor = MaterialTheme.colorScheme.error
+            ),
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                .fillMaxWidth(),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            types?.forEach { type ->
+                DropdownMenuItem(
+                    text = { Text("${type.mask} - ${type.name}") },
+                    onClick = {
+                        onChange("${type.mask} - ${type.name}")
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GenderField(
+    value: String,
+    genders: List<Gender>?,
+    onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    errorMessage: String?,
+    label: String = "Género",
+    placeholder: String = "Género"
+) {
+
+    var expanded by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            readOnly = true,
+            value = value,
+            onValueChange = {},
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            isError = errorMessage != null,
+            supportingText = { if (errorMessage != null) Text(errorMessage) },
+            colors = OutlinedTextFieldDefaults.colors(
+                errorBorderColor = MaterialTheme.colorScheme.error
+            ),
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                .fillMaxWidth(),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Next)
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            genders?.forEach { gender ->
+                DropdownMenuItem(
+                    text = { Text(gender.name) },
+                    onClick = {
+                        onChange(gender.name)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun CountryRegisterField(
     value: String,
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     errorMessage: String?,
     label: String = "País",
-    placeholder: String = "Ingrese su país"
+    placeholder: String = "Selección país"
 ) {
 
     val focusManager = LocalFocusManager.current
@@ -362,6 +779,9 @@ fun CountryRegisterField(
             placeholder = { Text(placeholder) },
             isError = errorMessage != null,
             supportingText = { if (errorMessage != null) Text(errorMessage) },
+            colors = OutlinedTextFieldDefaults.colors(
+                errorBorderColor = MaterialTheme.colorScheme.error
+            ),
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
@@ -395,8 +815,10 @@ fun CountryRegisterField(
 @Composable
 fun BirthdayRegisterField(
     birthday: String,
+    modifier: Modifier = Modifier,
     onChange: (String) -> Unit,
-    label: String = "Fecha de nacimiento",
+    errorMessage: String?,
+    label: String = "Nacimiento",
     placeholder: String = "DD/MM/YYYY"
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -419,7 +841,7 @@ fun BirthdayRegisterField(
     }
 
     Box(
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier
     ) {
         OutlinedTextField(
             value = birthday,
@@ -427,6 +849,11 @@ fun BirthdayRegisterField(
             placeholder = { Text(placeholder) },
             label = { Text(label) },
             readOnly = true,
+            isError = errorMessage != null,
+            supportingText = { if (errorMessage != null) Text(errorMessage) },
+            colors = OutlinedTextFieldDefaults.colors(
+                errorBorderColor = MaterialTheme.colorScheme.error
+            ),
             trailingIcon = {
                 IconButton(onClick = { showDatePicker = !showDatePicker }) {
                     Icon(
@@ -438,7 +865,6 @@ fun BirthdayRegisterField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
         )
 
         if (showDatePicker) {

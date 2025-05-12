@@ -121,6 +121,4 @@ public class GenderLogic {
 
         return null;
     }
-    
-    
 }

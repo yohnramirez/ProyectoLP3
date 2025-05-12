@@ -1,6 +1,8 @@
 package com.example.communitysecureapp.screen
 
+import android.content.Context
 import android.util.Patterns
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,14 +37,18 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.communitysecureapp.model.Screen
 import com.example.communitysecureapp.model.login.LoginRequest
+import com.example.communitysecureapp.utils.loader.Loader
+import com.example.communitysecureapp.utils.navigation.Home
+import com.example.communitysecureapp.utils.navigation.Login
+import com.example.communitysecureapp.utils.navigation.Register
 import com.example.communitysecureapp.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltViewModel()) {
 
-    val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    val loaderState by viewModel.loaderState.collectAsState()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -73,11 +80,6 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
                 false
             }
 
-            password.length < 6 -> {
-                passwordError = "La contraseña debe tener al menos 6 caracteres"
-                false
-            }
-
             else -> {
                 passwordError = null
                 true
@@ -95,6 +97,15 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
         ) {
+
+            Text(
+                text = "MapGuard",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(bottom = 32.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
 
             EmailField(
                 value = email,
@@ -128,7 +139,7 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(onClick = { navController.navigate(Screen.Register.route) }) {
+            TextButton(onClick = { navController.navigate(Register) }) {
                 Text("¿No tienes una cuenta? Crea una aquí")
             }
 
@@ -145,15 +156,54 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltVi
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                enabled = !loaderState.isLoading,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Iniciar sesión")
+                if (loaderState.isLoading) {
+                    Loader()
+                } else {
+                    Text("Iniciar sesión")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            state?.let {
-                Text("Login exitoso: ${it.token}")
+            loaderState.result?.let { result ->
+                if (result.success) {
+
+                    val prefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+
+                    prefs.edit().apply {
+                        putString("auth_token", result.token)
+                        putLong(
+                            "token_expiry",
+                            result.expiry ?: (System.currentTimeMillis() / 1000 + 3600)
+                        )
+                        putString("user_name", result.userName)
+                        apply()
+                    }
+
+                    Toast.makeText(
+                        context,
+                        "¡Bienvenido, ${result.userName}!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    navController.navigate(Home) {
+                        popUpTo(Login) { inclusive = true }
+                    }
+
+                    viewModel.clearLoginViewModel()
+
+                } else {
+                    Toast.makeText(
+                        context,
+                        result.errorMessage ?: "Error al iniciar sesión",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    viewModel.clearLoginViewModel()
+                }
             }
         }
     }
