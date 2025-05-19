@@ -1,7 +1,6 @@
 package com.backend.project.logic;
 
 import com.backend.project.dto.RegisterRequestDto;
-import io.github.cdimascio.dotenv.Dotenv;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -9,12 +8,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class AuthSupabaseLogic {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthSupabaseLogic.class);
 
     private final RestTemplate restTemplate;
 
@@ -24,34 +27,52 @@ public class AuthSupabaseLogic {
 
     public ResponseEntity<String> register(RegisterRequestDto requestDto) {
         try {
-            Dotenv dot = Dotenv.load();
+            String supabaseUrl = System.getProperty("AUTH_SUPABASE_URL", System.getenv("AUTH_SUPABASE_URL"));
+            String supabaseKey = System.getProperty("AUTH_SUPABASE_KEY", System.getenv("AUTH_SUPABASE_KEY"));
 
-            String endpoint = dot.get("AUTH_SUPABASE_URL") + "/auth/v1/signup";
+            logger.info("Register endpoint: {}", supabaseUrl != null ? supabaseUrl + "/auth/v1/signup" : "null");
+            logger.info("Supabase key present: {}", supabaseKey != null ? "Yes" : "No");
+
+            if (supabaseUrl == null || supabaseKey == null) {
+                logger.error("Missing required environment variables: AUTH_SUPABASE_URL or AUTH_SUPABASE_KEY");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error during registration: Missing environment variables");
+            }
+
+            String endpoint = supabaseUrl + "/auth/v1/signup";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("apikey", dot.get("AUTH_SUPABASE_KEY"));
-            headers.set("Authorization", "Bearer " + dot.get("AUTH_SUPABASE_KEY"));
+            headers.set("apikey", supabaseKey);
+            headers.set("Authorization", "Bearer " + supabaseKey);
 
             HttpEntity<Map<String, Object>> request = getRequest(requestDto, headers);
 
             return this.restTemplate.postForEntity(endpoint, request, String.class);
 
         } catch (Exception ex) {
-            System.out.println("[register]: " + ex.getMessage());
+            logger.error("Error during registration: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during registration");
         }
     }
 
     public ResponseEntity<String> login(String email, String password) {
         try {
-            Dotenv dot = Dotenv.load();
+            String supabaseUrl = System.getProperty("AUTH_SUPABASE_URL", System.getenv("AUTH_SUPABASE_URL"));
+            String supabaseKey = System.getProperty("AUTH_SUPABASE_KEY", System.getenv("AUTH_SUPABASE_KEY"));
 
-            String endpoint = dot.get("AUTH_SUPABASE_URL") + "/auth/v1/token?grant_type=password";
+            logger.info("Login endpoint: {}", supabaseUrl != null ? supabaseUrl + "/auth/v1/token?grant_type=password" : "null");
+
+            if (supabaseUrl == null || supabaseKey == null) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Error during sign in: Missing environment variables");
+            }
+
+            String endpoint = supabaseUrl + "/auth/v1/token?grant_type=password";
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("apiKey", dot.get("AUTH_SUPABASE_KEY"));
+            headers.set("apiKey", supabaseKey);
 
             Map<String, String> body = new HashMap<>();
             body.put("email", email);
