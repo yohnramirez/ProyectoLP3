@@ -1,4 +1,4 @@
-FROM maven:3.9.3-jdk-21 AS build
+FROM openjdk:21-jdk AS build
 
 WORKDIR /app
 COPY pom.xml .
