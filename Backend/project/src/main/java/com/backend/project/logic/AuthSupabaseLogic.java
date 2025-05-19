@@ -6,7 +6,10 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +25,10 @@ public class AuthSupabaseLogic {
     private final RestTemplate restTemplate;
 
     public AuthSupabaseLogic() {
-        this.restTemplate = new RestTemplate();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(15000);
+        factory.setReadTimeout(15000);
+        this.restTemplate = new RestTemplate(factory);
     }
 
     public ResponseEntity<String> register(RegisterRequestDto requestDto) {
@@ -50,9 +56,16 @@ public class AuthSupabaseLogic {
 
             return this.restTemplate.postForEntity(endpoint, request, String.class);
 
+        } catch (HttpClientErrorException ex) {
+            logger.error("Supabase registration failed: Status {}, Response {}", ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            logger.error("Supabase registration server error: Status {}, Response {}", ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
         } catch (Exception ex) {
             logger.error("Error during registration: {}", ex.getMessage(), ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during registration");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error during registration: " + ex.getMessage());
         }
     }
 
@@ -82,9 +95,16 @@ public class AuthSupabaseLogic {
 
             return this.restTemplate.postForEntity(endpoint, request, String.class);
 
+        } catch (HttpClientErrorException ex) {
+            logger.error("Supabase login failed: Status {}, Response {}", ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            logger.error("Supabase login server error: Status {}, Response {}", ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
         } catch (Exception ex) {
-            logger.error("Error during login: {}", ex.getMessage(), ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during sign in");
+            logger.error("Error during sign in: {}", ex.getMessage(), ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error during sign in: " + ex.getMessage());
         }
     }
 
