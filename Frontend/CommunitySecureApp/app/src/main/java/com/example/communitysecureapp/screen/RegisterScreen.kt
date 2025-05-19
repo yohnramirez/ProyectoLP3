@@ -1,7 +1,6 @@
 package com.example.communitysecureapp.screen
 
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -22,13 +23,13 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -53,16 +54,22 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Popup
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.communitysecureapp.model.document.TypeDocument
 import com.example.communitysecureapp.model.gender.Gender
 import com.example.communitysecureapp.model.register.RegisterRequest
+import com.example.communitysecureapp.state.RegisterState
+import com.example.communitysecureapp.utils.navigation.Home
 import com.example.communitysecureapp.viewmodel.RegisterViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -70,11 +77,12 @@ import java.util.Locale
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = hiltViewModel()) {
 
-    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val genders by viewModel.genders.collectAsState()
+    val registerState by viewModel.registerState.collectAsState()
     val typeDocuments by viewModel.typeDocuments.collectAsState()
-    val registerResult by viewModel.registerResult.collectAsState()
 
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
@@ -103,22 +111,27 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
         viewModel.getGenders()
     }
 
-    LaunchedEffect(registerResult) {
-        registerResult?.let { result ->
-            if (result.success) {
-                navController.navigate("home") {
-                    popUpTo("register") { inclusive = true }
+    LaunchedEffect(registerState) {
+        when (val state = registerState) {
+            is RegisterState.Success -> {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Registro exitoso")
+                    navController.navigate(Home) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
                 }
-            } else {
-                Toast.makeText(
-                    context,
-                    result.errorMessage ?: "Error desconocido en el registro",
-                    Toast.LENGTH_LONG
-                ).show()
+                viewModel.resetRegisterState()
             }
-        }
 
-        viewModel.clearResults()
+            is RegisterState.Error -> {
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar("Error: ${state.message}")
+                }
+                viewModel.resetRegisterState()
+            }
+
+            else -> {}
+        }
     }
 
     fun validateForm(): Boolean {
@@ -275,14 +288,19 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
         return isEmailValid && isPasswordValid && isFullNameValid && isAddressValid && isCountryValid && isCityValid && isBirthdayValid && isGenderValid && isTypeDocumentValid && isNumberDocumentValid
     }
 
-    Surface {
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { paddingValues ->
         Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
+            Text("Registro", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+
             NameRegisterField(
                 value = fullName,
                 onChange = {
@@ -410,9 +428,24 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = registerState !is RegisterState.Loading && email.isNotBlank() && password.isNotBlank()
             ) {
-                Text("Registrarse")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    if (registerState is RegisterState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Registrando...")
+                    } else {
+                        Text("Registrarse")
+                    }
+                }
             }
         }
     }

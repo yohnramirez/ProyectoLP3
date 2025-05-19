@@ -12,7 +12,7 @@ public class ReportCommentDto {
 
     private Long reportId;
 
-    private Long userId;
+    private String userId;
 
     private String comment;
 

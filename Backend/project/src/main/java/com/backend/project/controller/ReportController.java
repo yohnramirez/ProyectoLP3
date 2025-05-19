@@ -60,7 +60,7 @@ public class ReportController {
      * @return ReportDto list
      */
     @GetMapping("/user/{id}")
-    public ResponseEntity<List<ReportDto>> getReportsByUserId(@PathVariable Long id) {
+    public ResponseEntity<List<ReportDto>> getReportsByUserId(@PathVariable String id) {
         List<ReportDto> reportsByUser = this.reportLogic.getReportsByUser(id);
         return ResponseEntity.ok(reportsByUser);
     }
@@ -72,7 +72,7 @@ public class ReportController {
      */
     @GetMapping("/my-reports")
     public ResponseEntity<List<ReportDto>> getMyReports(HttpServletRequest request) {
-        long userId = Long.parseLong(request.getAttribute("userId").toString());
+        String userId = request.getAttribute("userId").toString();
         List<ReportDto> reportsByUser = this.reportLogic.getReportsByUser(userId);
         return ResponseEntity.ok(reportsByUser);
     }

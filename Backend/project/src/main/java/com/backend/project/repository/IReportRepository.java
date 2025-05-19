@@ -19,7 +19,7 @@ public interface IReportRepository extends JpaRepository<Report, Long> {
                                    @Param("longitude") double longitude,
                                    @Param("radius") double radius);
 
-    List<Report> findByUserId(long idUser);
+    List<Report> findByUserId(String idUser);
 
     List<Report> findByStatus(ReportStatus status);
 }

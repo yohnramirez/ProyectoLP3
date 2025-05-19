@@ -29,4 +29,9 @@ public class UserSupabaseController {
 
         return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
     }
+
+    @GetMapping("/search/{id}")
+    public ResponseEntity<String> getUserById(@PathVariable("id") String userId) {
+        return this.userSupabaseLogic.getUserById(userId);
+    }
 }

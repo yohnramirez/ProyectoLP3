@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,31 @@ public class UserSupabaseLogic {
         }
 
         return null;
+    }
+
+    public ResponseEntity<String> getUserById(String userId) {
+        try {
+            Dotenv dot = Dotenv.load();
+
+            String endpoint = dot.get("AUTH_SUPABASE_URL") + "/auth/v1/admin/users/" + userId;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + dot.get("SUPABASE_SERVICE_ROLE_KEY"));
+            headers.set("apikey", dot.get("SUPABASE_SERVICE_ROLE_KEY"));
+
+            HttpEntity<Void> request = new HttpEntity<>(headers);
+
+            return restTemplate.exchange(
+                    endpoint,
+                    HttpMethod.GET,
+                    request,
+                    String.class
+            );
+
+        } catch (Exception ex) {
+            System.out.println("[getUserById]: " + ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error getting user by ID");
+        }
     }
 
     private static @NotNull HttpEntity<Map<String, Object>> getRequest(UpdateUserDto requestDto, HttpHeaders headers) {

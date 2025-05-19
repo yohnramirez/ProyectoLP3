@@ -20,6 +20,16 @@ public interface IMapper {
 
 
     /**
+     * REPORT COMMENT
+     */
+    ReportCommentDto toDto(ReportComment comment);
+
+    ReportComment toEntity(ReportCommentDto reportCommentDto);
+
+    List<ReportCommentDto> toReportCommentDtoToList(List<ReportComment> reportComments);
+
+
+    /**
      * REPORT TYPE
      */
     ReportTypeDto toDto(ReportType type);

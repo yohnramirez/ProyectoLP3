@@ -12,7 +12,7 @@ public class ReportDto {
 
     private long id;
 
-    private long userId;
+    private String userId;
 
     private double latitude;
 

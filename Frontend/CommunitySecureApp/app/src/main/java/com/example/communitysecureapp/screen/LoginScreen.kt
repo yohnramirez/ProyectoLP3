@@ -48,7 +48,10 @@ import com.example.communitysecureapp.viewmodel.LoginViewModel
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(navController: NavController, viewModel: LoginViewModel = hiltViewModel()) {
+fun LoginScreen(
+    navController: NavController,
+    viewModel: LoginViewModel = hiltViewModel()
+) {
 
     val context = LocalContext.current
     val loaderState by viewModel.loaderState.collectAsState()

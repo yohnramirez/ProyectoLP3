@@ -50,8 +50,29 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
+    // OkHttp
+    implementation(libs.okhttp)
+
+    // Android STOMP
+    implementation(libs.stompprotocolandroid)
+
+    // RxJava
+    implementation (libs.rxjava2.rxjava)
+    implementation (libs.rxjava2.rxandroid)
+
+    // Ktor
+    implementation(libs.ktor.client.cio)
+    implementation (libs.ktor.client.core)
+
+    // Supabase
+    implementation(libs.storage.kt)
+    implementation(libs.postgrest.kt)
+
     // Open Street Maps
     implementation(libs.osmdroid.osmdroid.android)
+
+    // Dotenv
+    implementation(libs.dotenv.kotlin)
 
     // Location
     implementation(libs.play.services.location)

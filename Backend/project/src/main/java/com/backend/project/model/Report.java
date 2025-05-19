@@ -21,7 +21,7 @@ public class Report {
     private long id;
 
     @Column(nullable = false)
-    private long userId;
+    private String userId;
 
     @Column(nullable = false)
     private double latitude;
@@ -35,6 +35,7 @@ public class Report {
 
     private String description;
 
+    @Column(nullable = true)
     private String imageUrl;
 
     @Column(nullable = false)

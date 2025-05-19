@@ -1,21 +1,15 @@
 package com.example.communitysecureapp.model.report
 
-data class ReportResponse (
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ReportBroadcast (
     val id: Long,
     val userId: String,
     val latitude: Double,
     val longitude: Double,
-    val type: ReportType,
+    val type: String,
     val description: String,
     val status: String?,
-    val state: Boolean,
-    val imageUrl: String?,
     val dateCreated: String
-)
-
-data class ReportType(
-    val id: Long,
-    val name: String,
-    val description: String,
-    val state: Boolean
 )

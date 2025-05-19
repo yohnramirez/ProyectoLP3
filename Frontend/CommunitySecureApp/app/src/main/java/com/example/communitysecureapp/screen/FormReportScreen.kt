@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -44,7 +45,8 @@ fun FormReportScreen(
     formState: FormState,
     onFormStateChange: (FormState) -> Unit,
     onCloseSheet: () -> Unit,
-    onSubmit: (GeoPoint, String, String) -> Unit,
+    onSubmit: (GeoPoint, Long?, String, String?) -> Unit,
+    isLoading: Boolean,
     viewModel: FormReportViewModel = hiltViewModel()
 ) {
 
@@ -53,16 +55,21 @@ fun FormReportScreen(
     val typeReports by viewModel.typeReports.collectAsState()
     var expandedTypeReportField by remember { mutableStateOf(false) }
 
-    var reportType by remember(formState.reportType) { mutableStateOf(formState.reportType) }
+    var typeId by remember(formState.typeId) { mutableStateOf(formState.typeId) }
     var description by remember(formState.description) { mutableStateOf(formState.description) }
-    var incidentLocation by remember(formState.incidentLocation) { mutableStateOf<GeoPoint?>(formState.incidentLocation) }
+    var incidentLocation by remember(formState.incidentLocation) {
+        mutableStateOf<GeoPoint?>(
+            formState.incidentLocation
+        )
+    }
 
-    LaunchedEffect(reportType, description, incidentLocation) {
+    LaunchedEffect(typeId, description, incidentLocation) {
         onFormStateChange(
             FormState(
                 incidentLocation = incidentLocation,
-                reportType = reportType,
-                description = description
+                typeId = typeId,
+                description = description,
+                imageUrl = null
             )
         )
     }
@@ -106,22 +113,22 @@ fun FormReportScreen(
         ) {
 
             OutlinedTextField(
-                value = reportType,
-                onValueChange = { reportType = it },
+                value = typeReports?.data?.find { it.id == typeId }?.name ?: "",
+                onValueChange = { },
                 label = { Text("Tipo de Incidente") },
                 placeholder = { Text("Seleccione tipo reporte") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable, true),
                 singleLine = true,
-                isError = reportType.isBlank() && reportType.isNotEmpty(),
+                isError = typeId == null,
                 colors = OutlinedTextFieldDefaults.colors(
                     errorBorderColor = MaterialTheme.colorScheme.error
                 ),
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTypeReportField)
                 },
-                supportingText = { if (reportType.isBlank() && reportType.isNotEmpty()) Text("Este campo es obligatorio") }
+                supportingText = { if (typeId == null) Text("Este campo es obligatorio") }
             )
 
             ExposedDropdownMenu(
@@ -132,7 +139,7 @@ fun FormReportScreen(
                     DropdownMenuItem(
                         text = { Text(type.name) },
                         onClick = {
-                            reportType = type.name
+                            typeId = type.id
                             expandedTypeReportField = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
@@ -195,7 +202,7 @@ fun FormReportScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -210,9 +217,9 @@ fun FormReportScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Button(
                 onClick = {
-                    if (reportType.isNotBlank() && description.isNotBlank() && incidentLocation != null) {
+                    if (typeId != null && description.isNotBlank() && incidentLocation != null) {
                         focusManager.clearFocus()
-                        onSubmit(incidentLocation!!, reportType, description)
+                        onSubmit(incidentLocation!!, typeId, description, null)
                         onCloseSheet()
                     } else {
                         Toast.makeText(
@@ -222,9 +229,16 @@ fun FormReportScreen(
                         ).show()
                     }
                 },
-                enabled = reportType.isNotBlank() && description.isNotBlank() && incidentLocation != null
+                enabled = typeId != null && description.isNotBlank() && incidentLocation != null
             ) {
-                Text("Enviar")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Enviar")
+                }
             }
         }
     }

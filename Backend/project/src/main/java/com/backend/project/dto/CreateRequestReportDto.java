@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 public class CreateRequestReportDto {
 
-    private long userId;
+    private String userId;
 
     private double latitude;
 

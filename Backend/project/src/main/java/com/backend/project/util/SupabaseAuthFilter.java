@@ -33,8 +33,7 @@ public class SupabaseAuthFilter extends OncePerRequestFilter {
             try {
                 DecodedJWT jwt = jwtUtil.verifyToken(token);
 
-                // Puedes acceder a los claims del token
-                String userId = jwtUtil.getClaim(jwt, "sub"); // "sub" es el UID en Supabase
+                String userId = jwtUtil.getClaim(jwt, "sub");
                 String email = jwtUtil.getClaim(jwt, "email");
 
                 request.setAttribute("userId", userId);

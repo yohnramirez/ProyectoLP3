@@ -1,17 +1,18 @@
 package com.example.communitysecureapp.service
 
+import com.example.communitysecureapp.model.comment.CommentRequest
+import com.example.communitysecureapp.model.comment.CommentResponse
 import com.example.communitysecureapp.model.document.TypeDocument
 import com.example.communitysecureapp.model.gender.Gender
 import com.example.communitysecureapp.model.login.LoginRequest
 import com.example.communitysecureapp.model.login.LoginResponse
+import com.example.communitysecureapp.model.login.User
 import com.example.communitysecureapp.model.register.RegisterRequest
 import com.example.communitysecureapp.model.register.RegisterResponse
 import com.example.communitysecureapp.model.report.ReportHistoryResponse
 import com.example.communitysecureapp.model.report.ReportRequest
 import com.example.communitysecureapp.model.report.ReportResponse
 import com.example.communitysecureapp.model.type.ReportType
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -32,6 +33,13 @@ interface ApiService {
 
     @POST("/api/auth/register")
     suspend fun register(@Body registerRequest: RegisterRequest): RegisterResponse
+
+
+    /*
+        USERS
+     */
+    @GET("api/user/search/{id}")
+    suspend fun getUserById(@Path("id") id: String): User
 
 
     /*
@@ -103,7 +111,7 @@ interface ApiService {
 
     @GET("api/reports/user/{id}")
     suspend fun getReportsByUserId(
-        @Path("id") userId: Long
+        @Path("id") userId: String
     ): List<ReportResponse>
 
     @GET("api/reports/my-reports")
@@ -122,4 +130,14 @@ interface ApiService {
 
     @GET("api/reports/{id}/status-history")
     suspend fun getReportStatusHistory(@Path("id") reportId: Long): List<ReportHistoryResponse>
+
+
+    /*
+        REPORT COMMENTS
+     */
+    @POST("api/reports-comment/create")
+    suspend fun createComment(@Body comment: CommentRequest): CommentResponse
+
+    @GET("api/reports-comment/report/{id}")
+    suspend fun getCommentsByReportId(@Path("id") id: Long): List<CommentResponse>
 }

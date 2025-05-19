@@ -1,5 +1,7 @@
 package com.example.communitysecureapp.utils.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -10,11 +12,15 @@ import androidx.navigation.navArgument
 import com.example.communitysecureapp.screen.HomeScreen
 import com.example.communitysecureapp.screen.LoginScreen
 import com.example.communitysecureapp.screen.MapSelectorScreen
+import com.example.communitysecureapp.screen.MyReportsScreen
 import com.example.communitysecureapp.screen.RegisterScreen
+import com.example.communitysecureapp.screen.ReportDetailScreen
 import com.example.communitysecureapp.viewmodel.LoginViewModel
+import com.example.communitysecureapp.viewmodel.MapDataViewModel
 import com.example.communitysecureapp.viewmodel.RegisterViewModel
 import org.osmdroid.util.GeoPoint
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavigation(navController: NavHostController, isLogged: Boolean) {
 
@@ -43,6 +49,14 @@ fun AppNavigation(navController: NavHostController, isLogged: Boolean) {
             )
         }
 
+        composable<MyReports> {
+            val mapDataViewModel: MapDataViewModel = hiltViewModel()
+            MyReportsScreen(
+                navController = navController,
+                viewModel = mapDataViewModel
+            )
+        }
+
         composable(
             route = "map_selector?lat={lat}&lon={lon}",
             arguments = listOf(
@@ -66,6 +80,16 @@ fun AppNavigation(navController: NavHostController, isLogged: Boolean) {
                 navController = navController,
                 initialLocation = initialGeoPoint
             )
+        }
+
+        composable(
+            route = "reportDetail/{reportId}",
+            arguments = listOf(
+                navArgument("reportId") { type = NavType.StringType }
+            )
+        ) {
+            val reportId = it.arguments?.getString("reportId")
+            ReportDetailScreen(reportId = reportId ?: "", navController = navController)
         }
     }
 }

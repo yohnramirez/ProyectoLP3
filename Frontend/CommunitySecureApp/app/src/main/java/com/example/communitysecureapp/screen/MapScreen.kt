@@ -14,7 +14,12 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import android.Manifest
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +35,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,24 +49,52 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.example.communitysecureapp.model.report.ReportRequest
+import com.example.communitysecureapp.state.CreateReportState
 import com.example.communitysecureapp.state.FormState
 import com.example.communitysecureapp.viewmodel.FormReportViewModel
+import com.example.communitysecureapp.viewmodel.LoginViewModel
+import com.example.communitysecureapp.viewmodel.MapDataViewModel
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.launch
 import org.osmdroid.views.overlay.Marker
+import com.example.communitysecureapp.R
+import androidx.core.graphics.scale
+import androidx.core.graphics.drawable.toDrawable
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hiltViewModel()) {
+fun MapScreen(
+    navController: NavController,
+    viewModel: FormReportViewModel = hiltViewModel(),
+    loginViewModel: LoginViewModel = hiltViewModel(),
+    mapDataViewModel: MapDataViewModel = hiltViewModel()
+) {
 
     val context = LocalContext.current
     val clientLocation = remember { LocationServices.getFusedLocationProviderClient(context) }
     val mapView = rememberMapViewWithLifecycle()
     val coroutineScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val jwtToken by loginViewModel.jwtToken.collectAsState()
+    val userId by loginViewModel.userId.collectAsState()
+    val reportedCreated by viewModel.reportCreated.collectAsState()
+    val reportMarkersFromSocket by mapDataViewModel.reportMarkers.collectAsState()
+
+    println(reportMarkersFromSocket)
+
+    val initialEmptyFormState = remember {
+        FormState(
+            incidentLocation = null,
+            typeId = null,
+            description = "",
+            imageUrl = null
+        )
+    }
 
     var hasLocationPermission by rememberSaveable {
         mutableStateOf(
@@ -77,15 +111,50 @@ fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hil
     var firstLocationObtained by remember { mutableStateOf(false) }
     var initialGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
     var showBottomSheet by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
     var formState by rememberSaveable(stateSaver = FormState.Saver) {
         mutableStateOf(
-            FormState(
-                incidentLocation = null,
-                reportType = "",
-                description = ""
-            )
+            initialEmptyFormState
         )
+    }
+
+    LaunchedEffect(reportedCreated) {
+        when (val state = reportedCreated) {
+            is CreateReportState.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = state.message,
+                    duration = SnackbarDuration.Short
+                )
+                formState = initialEmptyFormState
+                showBottomSheet = false
+                viewModel.clearStateReportCreated()
+                mapDataViewModel.getPendingReports()
+            }
+
+            is CreateReportState.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = "Error: ${state.errorMessage}",
+                    duration = SnackbarDuration.Long
+                )
+                viewModel.clearStateReportCreated()
+            }
+
+            is CreateReportState.Loading -> {
+                Log.d("MapScreen", "Report creation in progress...")
+            }
+
+            is CreateReportState.Idle -> {
+
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        mapDataViewModel.getPendingReports()
+    }
+
+    LaunchedEffect(jwtToken, userId) {
+        Log.d("MapScreen", "JWT Token: $jwtToken")
+        Log.d("MapScreen", "User ID: $userId")
     }
 
     LaunchedEffect(navController) {
@@ -110,6 +179,11 @@ fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hil
 
     LaunchedEffect(sheetState.isVisible) {
         if (!sheetState.isVisible && showBottomSheet) {
+
+            if (reportedCreated is CreateReportState.Loading || reportedCreated is CreateReportState.Error) {
+                viewModel.clearStateReportCreated()
+            }
+
             showBottomSheet = false
         }
     }
@@ -130,7 +204,8 @@ fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hil
                     userLocationMarkerState = updateOrCreateUserMarker(
                         mapView,
                         userGeoPoint,
-                        userLocationMarkerState
+                        userLocationMarkerState,
+                        context
                     )
 
                     isLoadingLocation = false
@@ -192,7 +267,8 @@ fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hil
                                 userLocationMarkerState = updateOrCreateUserMarker(
                                     mapView,
                                     userGeoPoint,
-                                    userLocationMarkerState
+                                    userLocationMarkerState,
+                                    context
                                 )
 
                                 isLoadingLocation = false
@@ -235,145 +311,227 @@ fun MapScreen(navController: NavController, viewModel: FormReportViewModel = hil
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (hasLocationPermission) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            if (hasLocationPermission) {
 
-            if (firstLocationObtained && initialGeoPoint != null) {
+                if (firstLocationObtained && initialGeoPoint != null) {
 
-                AndroidView(
-                    factory = { cxt ->
-                        mapView.apply {
-                            controller.setZoom(16.5)
-                            controller.setCenter(initialGeoPoint)
+                    AndroidView(
+                        factory = { cxt ->
+                            mapView.apply {
+                                controller.setZoom(16.5)
+                                controller.setCenter(initialGeoPoint)
 
-                            userLocationMarkerState = updateOrCreateUserMarker(
-                                this,
-                                initialGeoPoint!!,
-                                userLocationMarkerState
-                            )
-                            invalidate()
+                                userLocationMarkerState = updateOrCreateUserMarker(
+                                    this,
+                                    initialGeoPoint!!,
+                                    userLocationMarkerState,
+                                    context
+                                )
+                                invalidate()
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        update = { currentView ->
+
+                            val currentMarkers = currentView.overlays
+                                .filterIsInstance<Marker>()
+                                .mapNotNull { it.id }
+                                .toSet()
+
+                            val markersToRemove = currentView.overlays.filter { overlay ->
+                                overlay is Marker && overlay.id != null &&
+                                        overlay.id != "user_location_marker" &&
+                                        overlay.id != "selection_marker" &&
+                                        !reportMarkersFromSocket.any { it.id.toString() == overlay.id }
+
+                            }
+                            currentView.overlays.removeAll(markersToRemove)
+
+                            reportMarkersFromSocket.forEach { reportData ->
+                                println("REPORTES FOREACH: $reportData")
+                                if (!currentMarkers.contains(reportData.id.toString())) {
+
+                                    val iconType = when(reportData.typeName) {
+                                        "Robo" -> R.drawable.thief
+                                        "Accidente" -> R.drawable.crash
+                                        "Emergencia médica" -> R.drawable.doctor
+                                        "Incendio" -> R.drawable.fire
+                                        "Actividad Sospechosa" -> R.drawable.question
+                                        else -> R.drawable.warning
+                                    }
+
+                                    val drawable = ContextCompat.getDrawable(context, iconType)
+                                    val scaledIcon = drawable?.let { resizeIcon(it, 32, 32) }
+                                    val finalIcon = scaledIcon?.toDrawable(context.resources)
+
+                                    val reportMarker = Marker(currentView).apply {
+                                        id = reportData.id.toString()
+                                        position = reportData.geoPoint
+                                        title = reportData.title
+                                        icon = finalIcon
+                                        subDescription = reportData.snippet
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                        setOnMarkerClickListener { marker, mapView ->
+                                            navController.navigate("reportDetail/${marker.id}")
+                                            true
+                                        }
+                                    }
+                                    currentView.overlays.add(reportMarker)
+                                }
+                            }
+
+                            currentView.invalidate()
                         }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                FloatingActionButton(
-                    onClick = {
-                        showBottomSheet = true
-                    },
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp),
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Crear Reporte",
-                        tint = MaterialTheme.colorScheme.onPrimary
                     )
-                }
-            } else if (isLoadingLocation) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Obteniendo tu ubicacion inicial...")
+
+                    FloatingActionButton(
+                        onClick = {
+                            showBottomSheet = true
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp),
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Crear Reporte",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                } else if (isLoadingLocation) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("Obteniendo tu ubicacion inicial...")
+                        }
+                    }
+                } else {
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("No se pudo obtener la ubicacion para mostrar el mapa")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    if (hasLocationPermission) {
+                                        firstLocationObtained = false
+                                        isLoadingLocation = true
+
+                                        val dummyActivityRecreationForRetry = mutableStateOf(false)
+                                        dummyActivityRecreationForRetry.value =
+                                            !dummyActivityRecreationForRetry.value
+                                    } else {
+                                        permissionRequired = false
+                                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                    }
+                                }
+                            ) {
+                                Text(if (hasLocationPermission) "Reintentar Obtener Ubicación" else "Conceder Permiso")
+                            }
+                        }
                     }
                 }
             } else {
 
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No se pudo obtener la ubicacion para mostrar el mapa")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = {
-                                if (hasLocationPermission) {
-                                    firstLocationObtained = false
-                                    isLoadingLocation = true
+                LaunchedEffect(Unit) {
+                    if (!permissionRequired) {
+                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    }
+                }
 
-                                    val dummyActivityRecreationForRetry = mutableStateOf(false)
-                                    dummyActivityRecreationForRetry.value =
-                                        !dummyActivityRecreationForRetry.value
-                                } else {
-                                    permissionRequired = false
-                                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (permissionRequired) {
+                        Text("El permiso de ubicacion es necesario para visualizar el mapa.")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = {
+                            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        }) {
+                            Text("Conceder Permiso")
+                        }
+                    } else {
+                        Text("Solicitando permiso de ubicación...")
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            if (showBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = {
+                        if (reportedCreated !is CreateReportState.Loading) {
+                            showBottomSheet = false
+
+                            if (reportedCreated is CreateReportState.Error) {
+                                viewModel.clearStateReportCreated()
+                            }
+                        }
+                    },
+                    sheetState = sheetState,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    FormReportScreen(
+                        navController = navController,
+                        formState = formState,
+                        onFormStateChange = { newState ->
+                            formState = newState
+                        },
+                        onCloseSheet = {
+                            if (reportedCreated !is CreateReportState.Loading) {
+                                showBottomSheet = false
+
+                                if (reportedCreated is CreateReportState.Error) {
+                                    viewModel.clearStateReportCreated()
                                 }
                             }
-                        ) {
-                            Text(if (hasLocationPermission) "Reintentar Obtener Ubicación" else "Conceder Permiso")
-                        }
-                    }
-                }
-            }
-        } else {
+                        },
+                        onSubmit = { geoPoint, typeId, description, imageUrl ->
+                            coroutineScope.launch {
 
-            LaunchedEffect(Unit) {
-                if (!permissionRequired) {
-                    locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                                val reportRequest = ReportRequest(
+                                    userId = userId!!,
+                                    latitude = geoPoint.latitude,
+                                    longitude = geoPoint.longitude,
+                                    typeId = typeId!!,
+                                    description = description,
+                                    imageUrl = imageUrl
+                                )
+
+                                viewModel.createReport(reportRequest)
+                            }
+
+                            showBottomSheet = false
+                        },
+                        isLoading = reportedCreated is CreateReportState.Loading
+                    )
                 }
             }
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (permissionRequired) {
-                    Text("El permiso de ubicacion es necesario para visualizar el mapa.")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = {
-                        locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                    }) {
-                        Text("Conceder Permiso")
-                    }
-                } else {
-                    Text("Solicitando permiso de ubicación...")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    CircularProgressIndicator()
-                }
-            }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
-
-        if (showBottomSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showBottomSheet = false },
-                sheetState = sheetState,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                FormReportScreen(
-                    navController = navController,
-                    formState = formState,
-                    onFormStateChange = { newState ->
-                        formState = newState
-                    },
-                    onCloseSheet = { showBottomSheet = false },
-                    onSubmit = { geoPoint, reportType, description ->
-                        formState = formState.copy(
-                            incidentLocation = geoPoint,
-                            reportType = reportType,
-                            description = description
-                        )
-
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Reporte enviado: $reportType")
-                        }
-                        showBottomSheet = false
-                    }
-                )
-            }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
     }
 
     DisposableEffect(Unit) {
@@ -439,16 +597,21 @@ fun rememberMapViewWithLifecycle(): MapView {
 fun updateOrCreateUserMarker(
     mapView: MapView,
     geoPoint: GeoPoint,
-    existingMarker: Marker?
+    existingMarker: Marker?,
+    context: Context
 ): Marker {
 
     val finalMarker: Marker
 
     if (existingMarker == null) {
+        val drawable = ContextCompat.getDrawable(context, R.drawable.pin)
+        val scaledIcon = resizeIcon(drawable!!)
+
         finalMarker = Marker(mapView).apply {
             position = geoPoint
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             title = "Mi Ubicación"
+            icon = scaledIcon.toDrawable(context.resources)
         }
         mapView.overlays.add(finalMarker)
     } else {
@@ -459,4 +622,9 @@ fun updateOrCreateUserMarker(
     mapView.invalidate()
 
     return finalMarker
+}
+
+fun resizeIcon(icon: Drawable, width: Int = 32, height: Int = 32): Bitmap {
+    val bitmap = (icon as BitmapDrawable).bitmap
+    return bitmap.scale(width, height, false)
 }

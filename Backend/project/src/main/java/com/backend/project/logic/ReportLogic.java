@@ -13,6 +13,7 @@ import com.backend.project.repository.IReportStatusHistoryRepository;
 import com.backend.project.repository.IReportTypeRepository;
 import com.backend.project.util.enums.ReportStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -45,6 +46,7 @@ public class ReportLogic {
     /**
      * Implementation web socket messaging
      */
+    @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
     /**
@@ -59,6 +61,7 @@ public class ReportLogic {
 
             Report report = this.mapper.toEntity(dataReport);
             report.setType(type);
+            report.setStatus(ReportStatus.PENDIENTE);
             report.setState(true);
 
             report = this.reportRepository.save(report);
@@ -91,7 +94,7 @@ public class ReportLogic {
      * @param idUser user id
      * @return List of reports
      */
-    public List<ReportDto> getReportsByUser(long idUser) {
+    public List<ReportDto> getReportsByUser(String idUser) {
         return this.reportRepository.findByUserId(idUser)
                 .stream().map(this.mapper::toDto).collect(Collectors.toList());
     }

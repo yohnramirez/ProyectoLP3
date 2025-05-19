@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.communitysecureapp.utils.navigation.Home
 import com.example.communitysecureapp.utils.navigation.Login
+import com.example.communitysecureapp.utils.navigation.MyReports
 import com.example.communitysecureapp.viewmodel.LogoutViewModel
 import kotlinx.coroutines.launch
 
@@ -78,7 +79,7 @@ fun NavigationModal(
                 ) {
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        "Drawer Title",
+                        "Menú",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.titleLarge
                     )
@@ -86,19 +87,14 @@ fun NavigationModal(
                     HorizontalDivider()
 
                     Text(
-                        "Section 1",
+                        "General",
                         modifier = Modifier.padding(16.dp),
                         style = MaterialTheme.typography.titleMedium
                     )
                     NavigationDrawerItem(
-                        label = { Text("Item 1") },
+                        label = { Text("Mis reportes") },
                         selected = false,
-                        onClick = { /* Handle click */ }
-                    )
-                    NavigationDrawerItem(
-                        label = { Text("Item 2") },
-                        selected = false,
-                        onClick = { /* Handle click */ }
+                        onClick = { navController.navigate(MyReports) }
                     )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -113,18 +109,7 @@ fun NavigationModal(
                             )
                         },
                         onClick = {
-                            scope.launch {
-                                logoutViewModel.logOut()
-                                drawerState.close()
-                                navController.navigate(Login) {
-                                    popUpTo(Home) { inclusive = true }
-                                }
-                                Toast.makeText(
-                                    context,
-                                    "¡Cierre de sesion exitoso!",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+
                         },
                     )
 
