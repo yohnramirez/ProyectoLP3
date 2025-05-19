@@ -72,7 +72,7 @@ public class AuthSupabaseLogic {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("apiKey", supabaseKey);
+            headers.set("apikey", supabaseKey);
 
             Map<String, String> body = new HashMap<>();
             body.put("email", email);
@@ -83,7 +83,7 @@ public class AuthSupabaseLogic {
             return this.restTemplate.postForEntity(endpoint, request, String.class);
 
         } catch (Exception ex) {
-            System.out.println("[login]: " + ex.getMessage());
+            logger.error("Error during login: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error during sign in");
         }
     }
