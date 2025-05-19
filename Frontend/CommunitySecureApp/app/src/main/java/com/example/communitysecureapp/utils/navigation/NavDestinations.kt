@@ -12,4 +12,4 @@ object Register
 object Home
 
 @Serializable
-object MapSelector
+object MyReports
