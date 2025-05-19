@@ -13,7 +13,7 @@ public class ProjectApplication {
 	}
 
 	private static void loadEnv() {
-		Dotenv dot = Dotenv.load();
+		Dotenv dot = Dotenv.configure().ignoreIfMissing().load();
 
 		System.setProperty("URL_DB", dot.get("URL_DB"));
 		System.setProperty("USER_DB", dot.get("USER_DB"));
